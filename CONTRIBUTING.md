@@ -1,0 +1,1 @@
+Contributions welcome. This is a small accelerator template; please open PRs with improvements (tests, CI, docs).
