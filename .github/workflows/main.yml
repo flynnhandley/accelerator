@@ -142,7 +142,7 @@ jobs:
       - name: Restart App Service
         run: |
           echo "Restarting App Service..."
-          az webapp restart --name ${{ env.WEBAPP_NAME }} --resource-group {{ env.RESOURCE_GROUP }}
+          az webapp restart --name ${{ env.WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
           echo "App Service restarted successfully."
 
       - name: Post-Deployment Warmup (Optional)
