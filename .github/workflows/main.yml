@@ -95,7 +95,7 @@ jobs:
         run: echo "Performing simulated health checks... All good."
 
   deploy-nonprod:
-    name: Full Deploy (Dev)
+    name: Full Deploy
     needs: canary-deploy
     environment: dev
     permissions:
