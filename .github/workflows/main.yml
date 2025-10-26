@@ -139,6 +139,12 @@ jobs:
           app-name: ${{ env.WEBAPP_NAME }}
           package: app.zip
 
+      - name: Restart App Service
+        run: |
+          echo "Restarting App Service..."
+          az webapp restart --name ${{ env.WEBAPP_NAME }} --resource-group $(az webapp show --name ${{ env.WEBAPP_NAME }} --query resourceGroup -o tsv)
+          echo "App Service restarted successfully."
+
       - name: Post-Deployment Warmup (Optional)
         run: |
           echo "Hitting site to warm cache..."
