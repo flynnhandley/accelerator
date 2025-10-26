@@ -1,5 +1,14 @@
 name: deploy-nonprod
 
+# This workflow builds, tests, publishes, and deploys a .NET web app to Azure App Service.
+# It uses OpenID Connect (federated credentials) for Azure login (no publish profile secret required).
+
+env:
+  DOTNET_VERSION: '8.0.x'            # Adjust if you need a different SDK
+  PUBLISH_DIR: publish               # Relative folder for published output
+  BUILD_CONFIGURATION: Release
+  # Intentionally NOT referencing environment-scoped vars here; they are only available inside jobs that declare environment: dev
+
 on:
   push:
     branches:
@@ -28,12 +37,36 @@ jobs:
     needs: security-scan
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies 
-        run: echo "Installing project dependencies..."
-      - name: Run unit tests 
-        run: |
-          echo "Executing unit tests..."
-          echo "All unit tests passed."
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Test
+        run: dotnet test --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+
+      - name: Publish App
+        run: dotnet publish --configuration ${{ env.BUILD_CONFIGURATION }} --output ${{ env.PUBLISH_DIR }} --no-build
+
+      - name: Upload Publish Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp-publish
+          path: ${{ env.PUBLISH_DIR }}
 
   integration-tests:
     name: Integration Tests
@@ -50,15 +83,15 @@ jobs:
         run: echo "Stopping services..."
 
   canary-deploy:
-    name: Canary Deploy
+    name: Canary Deploy (Dev Placeholder)
     runs-on: ubuntu-latest
     needs: integration-tests
     environment: dev
     steps:
       - uses: actions/checkout@v4
-      - name: Canary deploy 
+      - name: Canary deploy placeholder
         run: echo "Simulating canary deployment to a subset of dev..."
-      - name: Canary verification 
+      - name: Canary verification placeholder
         run: echo "Performing simulated health checks... All good."
 
   deploy-nonprod:
@@ -69,15 +102,42 @@ jobs:
       id-token: write
       contents: read
     runs-on: ubuntu-latest
+    env:
+      # Resolved from the environment 'dev' (populated via Terraform GitHub environment variables)
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      WEBAPP_NAME: ${{ vars.WEBAPP_NAME }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Download Published Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp-publish
+          path: ${{ env.PUBLISH_DIR }}
 
-      - name: Do infra
+      - name: (Optional) Show files to deploy
+        run: ls -R ${{ env.PUBLISH_DIR }} | head -100
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          package: ${{ env.PUBLISH_DIR }}
+          # If deploying to a slot, add: slot-name: 'staging'
+
+      - name: Post-Deployment Warmup (Optional)
         run: |
-          az account show
+          echo "Hitting site to warm cache..."
+          curl -s https://${{ env.WEBAPP_NAME }}.azurewebsites.net || true
+
+      - name: Logout Azure (Cleanup)
+        if: always()
+        run: az logout || true
