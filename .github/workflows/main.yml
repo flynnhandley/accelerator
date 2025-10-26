@@ -126,12 +126,18 @@ jobs:
       - name: (Optional) Show files to deploy
         run: ls -R ${{ env.PUBLISH_DIR }} | head -100
 
+      - name: Create Deployment Zip
+        run: |
+          cd ${{ env.PUBLISH_DIR }}
+          zip -r ../app.zip .
+          cd ..
+          ls -lh app.zip
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.WEBAPP_NAME }}
-          package: ${{ env.PUBLISH_DIR }}
-          # If deploying to a slot, add: slot-name: 'staging'
+          package: app.zip
 
       - name: Post-Deployment Warmup (Optional)
         run: |
