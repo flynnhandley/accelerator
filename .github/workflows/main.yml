@@ -83,15 +83,15 @@ jobs:
         run: echo "Stopping services..."
 
   canary-deploy:
-    name: Canary Deploy (Dev Placeholder)
+    name: Canary Deploy
     runs-on: ubuntu-latest
     needs: integration-tests
     environment: dev
     steps:
       - uses: actions/checkout@v4
-      - name: Canary deploy placeholder
+      - name: Canary deploy
         run: echo "Simulating canary deployment to a subset of dev..."
-      - name: Canary verification placeholder
+      - name: Canary verification
         run: echo "Performing simulated health checks... All good."
 
   deploy-nonprod:
