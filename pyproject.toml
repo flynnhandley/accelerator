@@ -1,9 +1,0 @@
-[project]
-name = "python-function-accelerator"
-version = "0.1.0"
-description = "Boilerplate Python function app accelerator"
-requires-python = ">=3.10"
-
-[tool.pytest.ini_options]
-minversion = "7.0"
-testpaths = ["python-function-accelerator/tests", "src"]
