@@ -108,6 +108,7 @@ jobs:
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       WEBAPP_NAME: ${{ vars.WEBAPP_NAME }}
+      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
     steps:
       - uses: actions/checkout@v4
 
